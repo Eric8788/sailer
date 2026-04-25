@@ -28,8 +28,8 @@ export function createKeyboardController(): KeyboardController {
         easeOut: Boolean(keys.arrowup),
         crewLeft: Boolean(keys.arrowleft),
         crewRight: Boolean(keys.arrowright),
-        boardDown: Boolean(keys.w),
-        boardUp: Boolean(keys.s),
+        boardDown: Boolean(keys.s),
+        boardUp: Boolean(keys.w),
       };
     },
     destroy() {

@@ -75,6 +75,10 @@ export interface HudSnapshot {
   rudderAngle: number;
   crewWeightOffset: number;
   centerboardDown: number;
+  vmg: number;
+  sog: number;
+  cog: number;
+  twa: number;
 }
 
 export type VectorKey = 'awa' | 'drive' | 'drag' | 'heel' | 'total' | 'crew';
@@ -155,10 +159,6 @@ export interface SceneRefs {
   sailGraphics: Graphics;
   vectorGraphics: Record<VectorKey, Graphics>;
   vectorLabels: Record<VectorKey, Text>;
-  windCompassContainer: Container;
-  compassArrow: Graphics;
-  minimapContainer: Container;
-  mmBoat: Graphics;
   capsizeText: Text;
   windParticles: Particle[];
   currentParticles: Particle[];

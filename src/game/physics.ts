@@ -139,6 +139,30 @@ function buildHudSnapshot(
   boat: BoatConfig,
   derived: DerivedValues,
 ): HudSnapshot {
+  // SOG and COG calculation
+  const bvx = state.boatSpeed * Math.sin(derived.moveRad);
+  const bvy = -state.boatSpeed * Math.cos(derived.moveRad);
+  
+  const currentRad = environment.currentDir * Math.PI / 180;
+  const cvx = environment.currentSpeed * Math.sin(currentRad);
+  const cvy = -environment.currentSpeed * Math.cos(currentRad);
+  
+  const gvx = bvx + cvx;
+  const gvy = bvy + cvy;
+  
+  const sog = Math.sqrt(gvx * gvx + gvy * gvy);
+  let cog = Math.atan2(gvx, -gvy) * 180 / Math.PI;
+  if (cog < 0) cog += 360;
+  
+  // TWA (True Wind Angle) relative to boat heading
+  const twa = computeRelativeAngle(environment.twd, state.boatHeading);
+  
+  // VMG (Velocity Made Good) - speed towards/away from wind
+  // VMG = SOG * cos(COG - TWD)
+  const twdRad = environment.twd * Math.PI / 180;
+  const cogRad = cog * Math.PI / 180;
+  const vmg = sog * Math.cos(cogRad - twdRad);
+
   return {
     boatName: boat.name,
     twd: environment.twd,
@@ -156,6 +180,10 @@ function buildHudSnapshot(
     rudderAngle: state.rudderAngle,
     crewWeightOffset: state.crewWeightOffset,
     centerboardDown: state.centerboardDown,
+    vmg,
+    sog,
+    cog,
+    twa,
   };
 }
 
@@ -238,10 +266,16 @@ function applyControls(
 
   if (controls.crewLeft) {
     state.crewWeightOffset = clamp(state.crewWeightOffset - 2 * dt, -100, 100);
-  }
-
-  if (controls.crewRight) {
+  } else if (controls.crewRight) {
     state.crewWeightOffset = clamp(state.crewWeightOffset + 2 * dt, -100, 100);
+  } else {
+    // Auto-centering crew weight when no keys are pressed
+    const centerSpeed = 1.2 * dt;
+    if (Math.abs(state.crewWeightOffset) < centerSpeed) {
+      state.crewWeightOffset = 0;
+    } else {
+      state.crewWeightOffset -= Math.sign(state.crewWeightOffset) * centerSpeed;
+    }
   }
 
   if (controls.boardDown) {

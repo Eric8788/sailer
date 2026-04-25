@@ -6,7 +6,6 @@ import {
   CURRENT_PARTICLE_COUNT,
   GRID_SIZE,
   MAJOR_GRID_SIZE,
-  MINIMAP_SIZE,
   STATIC_WATER_PARTICLE_COUNT,
   TRAIL_POOL_SIZE,
   WIND_ALPHA_BUCKETS,
@@ -25,7 +24,6 @@ import type {
   VectorVisibility,
 } from '../types';
 
-const MINIMAP_SCALE = MINIMAP_SIZE / Math.max(WORLD_WIDTH, WORLD_HEIGHT);
 const TRAIL_LIFE = 120;
 const FORCE_SCALE = 15;
 const VECTOR_LABELS: Record<VectorKey, { text: string; color: number; width: number }> = {
@@ -339,98 +337,6 @@ function drawForceVectors(scene: SceneRefs, snapshot: RenderSnapshot, visibility
   );
 }
 
-function createCompass(app: Application) {
-  const container = new Container();
-  app.stage.addChild(container);
-
-  const background = new Graphics();
-  background.circle(0, 0, 35);
-  background.fill({ color: 0x001f3f, alpha: 0.6 });
-  background.stroke({ width: 2, color: 0xffffff, alpha: 0.8 });
-  container.addChild(background);
-
-  const arrow = new Graphics();
-  arrow.moveTo(0, 18);
-  arrow.lineTo(0, -22);
-  arrow.stroke({ width: 2.5, color: 0xffffff });
-  arrow.moveTo(0, -22);
-  arrow.lineTo(12, -15);
-  arrow.lineTo(0, -10);
-  arrow.fill({ color: 0x00ffff, alpha: 0.9 });
-  arrow.moveTo(0, -10);
-  arrow.lineTo(8, -5);
-  arrow.lineTo(0, -1);
-  arrow.fill({ color: 0x00ffff, alpha: 0.6 });
-  container.addChild(arrow);
-
-  const poleDot = new Graphics();
-  poleDot.circle(0, 18, 3);
-  poleDot.fill({ color: 0xffffff });
-  container.addChild(poleDot);
-
-  const label = new Text({
-    text: 'Wind',
-    style: { fontFamily: 'Inter, sans-serif', fontSize: 13, fill: 0x00ffff, fontWeight: 'bold' },
-  });
-  label.anchor.set(0.5);
-  label.y = 48;
-  container.addChild(label);
-
-  return { container, arrow };
-}
-
-function createMinimap(app: Application) {
-  const minimapContainer = new Container();
-  app.stage.addChild(minimapContainer);
-
-  const minimapBg = new Graphics();
-  minimapBg.rect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
-  minimapBg.fill({ color: 0x001f3f, alpha: 0.8 });
-  minimapBg.stroke({ width: 2, color: 0xffffff, alpha: 0.5 });
-  minimapContainer.addChild(minimapBg);
-
-  const dirStyle = { fontFamily: 'Inter', fontSize: 11, fill: 0xffffff, fontWeight: 'bold' as const };
-  const north = new Text({ text: 'N', style: dirStyle });
-  north.anchor.set(0.5);
-  north.x = MINIMAP_SIZE / 2;
-  north.y = -2;
-  minimapContainer.addChild(north);
-
-  const south = new Text({ text: 'S', style: dirStyle });
-  south.anchor.set(0.5);
-  south.x = MINIMAP_SIZE / 2;
-  south.y = MINIMAP_SIZE + 2;
-  minimapContainer.addChild(south);
-
-  const east = new Text({ text: 'E', style: dirStyle });
-  east.anchor.set(0, 0.5);
-  east.x = MINIMAP_SIZE + 4;
-  east.y = MINIMAP_SIZE / 2;
-  minimapContainer.addChild(east);
-
-  const west = new Text({ text: 'W', style: dirStyle });
-  west.anchor.set(1, 0.5);
-  west.x = -4;
-  west.y = MINIMAP_SIZE / 2;
-  minimapContainer.addChild(west);
-
-  const mmBuoys = new Graphics();
-  minimapContainer.addChild(mmBuoys);
-  for (const buoy of BUOYS) {
-    mmBuoys.circle(buoy.x * MINIMAP_SCALE, buoy.y * MINIMAP_SCALE, 3);
-    mmBuoys.fill({ color: 0xff8800 });
-  }
-
-  const boatGraphic = new Graphics();
-  boatGraphic.moveTo(0, -6);
-  boatGraphic.lineTo(4, 4);
-  boatGraphic.lineTo(-4, 4);
-  boatGraphic.fill({ color: 0x00ff00 });
-  minimapContainer.addChild(boatGraphic);
-
-  return { minimapContainer, boatGraphic };
-}
-
 export function createScene(app: Application, boat: BoatConfig): SceneRefs {
   const worldContainer = new Container();
   app.stage.addChild(worldContainer);
@@ -525,9 +431,6 @@ export function createScene(app: Application, boat: BoatConfig): SceneRefs {
     ]),
   ) as Record<VectorKey, Text>;
 
-  const compass = createCompass(app);
-  const minimap = createMinimap(app);
-
   const capsizeText = new Text({
     text: 'CAPSIZE (翻船)',
     style: { fontFamily: 'Inter, sans-serif', fontSize: 72, fill: 0xff0000, fontWeight: 'bold' },
@@ -547,10 +450,6 @@ export function createScene(app: Application, boat: BoatConfig): SceneRefs {
     sailGraphics,
     vectorGraphics,
     vectorLabels,
-    windCompassContainer: compass.container,
-    compassArrow: compass.arrow,
-    minimapContainer: minimap.minimapContainer,
-    mmBoat: minimap.boatGraphic,
     capsizeText,
     windParticles: createParticles(WIND_PARTICLE_COUNT, WIND_ALPHA_BUCKETS.length, 8, 15, 0.8, 0.5),
     currentParticles: createParticles(CURRENT_PARTICLE_COUNT, CURRENT_ALPHA_BUCKETS.length, 10, 20, 0.5, 0.3),
@@ -639,32 +538,6 @@ export function renderScene(scene: SceneRefs, snapshot: RenderSnapshot, options:
   }
 
   updateTrailPool(scene, options.dt);
-
-  scene.compassArrow.rotation = snapshot.windFlowRad;
-  if (options.layout.compassRect) {
-    scene.windCompassContainer.visible = true;
-    scene.windCompassContainer.x = options.layout.compassRect.x + options.layout.compassRect.width / 2;
-    scene.windCompassContainer.y = options.layout.compassRect.y + options.layout.compassRect.height / 2 - 4;
-  } else {
-    scene.windCompassContainer.visible = false;
-  }
-
-  scene.mmBoat.x = snapshot.boatPosition.x * MINIMAP_SCALE;
-  scene.mmBoat.y = snapshot.boatPosition.y * MINIMAP_SCALE;
-  scene.mmBoat.rotation = snapshot.headingRad;
-  if (options.layout.minimapRect) {
-    const scale = Math.min(
-      options.layout.minimapRect.width / (MINIMAP_SIZE + 16),
-      options.layout.minimapRect.height / (MINIMAP_SIZE + 16),
-      1.1,
-    );
-    scene.minimapContainer.visible = true;
-    scene.minimapContainer.scale.set(scale);
-    scene.minimapContainer.x = options.layout.minimapRect.x + (options.layout.minimapRect.width - MINIMAP_SIZE * scale) / 2;
-    scene.minimapContainer.y = options.layout.minimapRect.y + (options.layout.minimapRect.height - MINIMAP_SIZE * scale) / 2;
-  } else {
-    scene.minimapContainer.visible = false;
-  }
 
   scene.capsizeText.x = viewportCenterX;
   scene.capsizeText.y = app.screen.height / 2;
