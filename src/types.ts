@@ -62,6 +62,7 @@ export interface HudSnapshot {
   boatName: string;
   twd: number;
   tws: number;
+  boatPosition: Position;
   awaRelativeToBoat: number;
   aws: number;
   currentSpeed: number;

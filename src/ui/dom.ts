@@ -1,8 +1,8 @@
+import { BUOYS, WORLD_HEIGHT, WORLD_WIDTH } from '../config/world';
 import type {
   EnvironmentState,
   HudSnapshot,
   OverlayLayout,
-  OverlayRect,
   VectorKey,
   VectorVisibility,
 } from '../types';
@@ -16,7 +16,9 @@ const DEFAULT_VECTOR_VISIBILITY: VectorVisibility = {
   crew: true,
 };
 
-const DOCK_GAP = 16;
+const DOCK_GAP = 20;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const DEFAULT_RUDDER_RANGE = 35;
 
 interface SliderRefs {
   slider: HTMLInputElement;
@@ -43,17 +45,33 @@ interface HudValueRefs {
   heading: HTMLElement;
   boatSpeed: HTMLElement;
   heel: HTMLElement;
-  sailTrim: HTMLElement;
-  rudder: HTMLElement;
-  crew: HTMLElement;
-  centerboard: HTMLElement;
+}
+
+interface StatusMeterRefs {
+  value: HTMLElement;
+  fill?: HTMLElement;
+  thumb?: HTMLElement;
+}
+
+interface BoatStatusRefs {
+  sailTrim: StatusMeterRefs;
+  rudder: StatusMeterRefs;
+  crew: StatusMeterRefs;
+  centerboard: StatusMeterRefs;
+}
+
+interface MapRefs {
+  compassArrow: HTMLElement;
+  compassLabel: HTMLElement;
+  boatMarker: SVGGElement;
+  zoom: SliderRefs;
 }
 
 interface DockRefs {
   dock: HTMLElement;
   panel: HTMLElement;
   toggle: HTMLButtonElement;
-  isCollapsed: () => boolean;
+  isCollapsed(): boolean;
   setCollapsed(nextCollapsed: boolean): void;
 }
 
@@ -76,6 +94,10 @@ function normalizeDegrees(value: number): number {
   return (value % 360 + 360) % 360;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
 function createElement<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -91,29 +113,40 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
   return element;
 }
 
+function createSvgElement<K extends keyof SVGElementTagNameMap>(
+  tag: K,
+  attrs: Record<string, string> = {},
+) {
+  const element = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) {
+    element.setAttribute(key, value);
+  }
+  return element;
+}
+
 function createDock(side: 'left' | 'right', label: string): DockRefs {
   let collapsed = false;
 
   const dock = createElement('aside', `hud-dock hud-dock--${side}`);
   const toggle = createElement('button', 'dock-toggle') as HTMLButtonElement;
   toggle.type = 'button';
-  toggle.setAttribute('aria-label', `${side === 'left' ? '左' : '右'}侧栏`);
+  toggle.setAttribute('aria-label', label);
 
-  const toggleIcon = createElement('span', 'dock-toggle-icon');
-  const toggleLabel = createElement('span', 'dock-toggle-label', label);
-  toggle.append(toggleIcon, toggleLabel);
+  const icon = createElement('span', 'dock-toggle-icon');
+  const text = createElement('span', 'dock-toggle-label', label);
+  toggle.append(icon, text);
 
   const panel = createElement('div', 'dock-panel');
   dock.append(toggle, panel);
 
-  const updateDockState = () => {
+  const sync = () => {
     dock.classList.toggle('is-collapsed', collapsed);
-    toggleIcon.textContent = collapsed
+    icon.textContent = collapsed
       ? side === 'left' ? '›' : '‹'
       : side === 'left' ? '‹' : '›';
   };
 
-  updateDockState();
+  sync();
 
   return {
     dock,
@@ -122,7 +155,7 @@ function createDock(side: 'left' | 'right', label: string): DockRefs {
     isCollapsed: () => collapsed,
     setCollapsed(nextCollapsed: boolean) {
       collapsed = nextCollapsed;
-      updateDockState();
+      sync();
     },
   };
 }
@@ -178,6 +211,47 @@ function createSliderRow(parent: HTMLElement, label: string, min: string, max: s
   return { slider, value: valueEl };
 }
 
+function createProgressStatus(parent: HTMLElement, label: string): StatusMeterRefs {
+  const row = createElement('div', 'status-row');
+  const header = createElement('div', 'status-header');
+  const labelEl = createElement('span', 'status-label', label);
+  const valueEl = createElement('span', 'status-value');
+  header.append(labelEl, valueEl);
+
+  const track = createElement('div', 'status-track');
+  const fill = createElement('div', 'status-fill');
+  track.appendChild(fill);
+
+  row.append(header, track);
+  parent.appendChild(row);
+
+  return {
+    value: valueEl,
+    fill,
+  };
+}
+
+function createCenteredStatus(parent: HTMLElement, label: string): StatusMeterRefs {
+  const row = createElement('div', 'status-row');
+  const header = createElement('div', 'status-header');
+  const labelEl = createElement('span', 'status-label', label);
+  const valueEl = createElement('span', 'status-value');
+  header.append(labelEl, valueEl);
+
+  const track = createElement('div', 'status-track status-track--centered');
+  const center = createElement('div', 'status-centerline');
+  const thumb = createElement('div', 'status-thumb');
+  track.append(center, thumb);
+
+  row.append(header, track);
+  parent.appendChild(row);
+
+  return {
+    value: valueEl,
+    thumb,
+  };
+}
+
 function createVectorList(parent: HTMLElement) {
   const list = createElement('div', 'vector-list');
   parent.appendChild(list);
@@ -210,21 +284,90 @@ function createVectorList(parent: HTMLElement) {
   return refs as Record<VectorKey, HTMLInputElement>;
 }
 
-function readRect(element: HTMLElement | null): OverlayRect | null {
-  if (!element || element.offsetParent === null) {
-    return null;
+function createMapView(parent: HTMLElement) {
+  const wrap = createElement('div', 'map-widget');
+  const toolbar = createElement('div', 'map-toolbar');
+
+  const compass = createElement('div', 'compass-widget');
+  const compassDial = createElement('div', 'compass-dial');
+  const compassArrow = createElement('div', 'compass-arrow');
+  const compassCenter = createElement('div', 'compass-center');
+  const compassLabel = createElement('div', 'compass-label', 'Wind Flow 180°');
+  compassDial.append(compassArrow, compassCenter);
+  compass.append(compassDial, compassLabel);
+
+  const zoomWrap = createElement('div', 'zoom-widget');
+  const zoomTitle = createElement('div', 'zoom-title', '视角缩放');
+  const zoom = createSliderRow(zoomWrap, '缩放', '0.3', '3', '0.05');
+  zoom.slider.value = '1';
+  zoomWrap.prepend(zoomTitle);
+
+  toolbar.append(compass, zoomWrap);
+
+  const minimapFrame = createElement('div', 'minimap-frame');
+  const svg = createSvgElement('svg', {
+    class: 'minimap-svg',
+    viewBox: '0 0 200 200',
+    role: 'img',
+    'aria-label': '赛场小地图',
+  }) as SVGSVGElement;
+  const background = createSvgElement('rect', {
+    x: '0',
+    y: '0',
+    width: '200',
+    height: '200',
+    rx: '16',
+    fill: 'rgba(6, 28, 52, 0.94)',
+    stroke: 'rgba(255,255,255,0.18)',
+  });
+  svg.appendChild(background);
+
+  const labels = [
+    { text: 'N', x: '100', y: '16', anchor: 'middle' },
+    { text: 'S', x: '100', y: '194', anchor: 'middle' },
+    { text: 'W', x: '14', y: '104', anchor: 'middle' },
+    { text: 'E', x: '186', y: '104', anchor: 'middle' },
+  ];
+  for (const label of labels) {
+    const text = createSvgElement('text', {
+      x: label.x,
+      y: label.y,
+      'text-anchor': label.anchor,
+      'font-size': '11',
+      'font-weight': '700',
+      fill: 'rgba(255,255,255,0.86)',
+    });
+    text.textContent = label.text;
+    svg.appendChild(text);
   }
 
-  const rect = element.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
+  for (const buoy of BUOYS) {
+    const dot = createSvgElement('circle', {
+      cx: (buoy.x / WORLD_WIDTH * 200).toFixed(2),
+      cy: (buoy.y / WORLD_HEIGHT * 200).toFixed(2),
+      r: '3.4',
+      fill: '#ff8a00',
+    });
+    svg.appendChild(dot);
   }
+
+  const boatMarker = createSvgElement('g') as SVGGElement;
+  const boatShape = createSvgElement('polygon', {
+    points: '0,-8 5,6 -5,6',
+    fill: '#62ff3f',
+  });
+  boatMarker.appendChild(boatShape);
+  svg.appendChild(boatMarker);
+
+  minimapFrame.appendChild(svg);
+  wrap.append(toolbar, minimapFrame);
+  parent.appendChild(wrap);
 
   return {
-    x: rect.left,
-    y: rect.top,
-    width: rect.width,
-    height: rect.height,
+    compassArrow,
+    compassLabel,
+    boatMarker,
+    zoom,
   };
 }
 
@@ -236,6 +379,10 @@ function formatAwa(snapshot: HudSnapshot): string {
 function formatHeel(snapshot: HudSnapshot): string {
   const side = snapshot.heelAngle < 0 ? '左倾' : '右倾';
   return `${Math.abs(snapshot.heelAngle).toFixed(1)}° ${side}`;
+}
+
+function formatSignedPercent(value: number): string {
+  return `${value.toFixed(0)}%`;
 }
 
 function syncEnvironmentRefs(refs: EnvironmentRefs, environment: EnvironmentState) {
@@ -266,12 +413,17 @@ function createRandomEnvironment(): EnvironmentState {
   return { tws, twd, currentSpeed, currentDir };
 }
 
+function syncBodyDockState(leftDock: DockRefs, rightDock: DockRefs) {
+  document.body.classList.toggle('left-dock-collapsed', leftDock.isCollapsed());
+  document.body.classList.toggle('right-dock-collapsed', rightDock.isCollapsed());
+}
+
 export function createGameUi(options: CreateGameUiOptions): GameUi {
   let cameraZoom = 1;
   const vectorVisibility = { ...DEFAULT_VECTOR_VISIBILITY };
 
-  const leftDock = createDock('left', '风 / 水');
-  const rightDock = createDock('right', '船 / 图');
+  const leftDock = createDock('left', '环境');
+  const rightDock = createDock('right', '船与地图');
   document.body.append(leftDock.dock, rightDock.dock);
 
   const windCard = createCard(leftDock.panel, '风系统', '真实风与视风', '#00e5ff');
@@ -291,13 +443,8 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     heading: createElement('span'),
     boatSpeed: createElement('span'),
     heel: createElement('span'),
-    sailTrim: createElement('span'),
-    rudder: createElement('span'),
-    crew: createElement('span'),
-    centerboard: createElement('span'),
   };
-
-  windInfo.appendChild(createElement('p', 'card-note', '风向表示风从哪里来；视风则是船上实际感受到的风。'));
+  windInfo.appendChild(createElement('p', 'card-note', '风向表示风从哪里来；视风是船上感受到的实际风。'));
   const windAdjust = createSection(windCard.body, '调整');
   const windSliders = createElement('div', 'slider-stack');
   windAdjust.appendChild(windSliders);
@@ -312,12 +459,12 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
 
   const waterCard = createCard(leftDock.panel, '水系统', '水流与侧滑', '#4fc3f7');
   const waterInfo = createSection(waterCard.body, '信息');
-  const waterMetrics = createElement('div', 'metric-grid');
+  const waterMetrics = createElement('div', 'metric-grid metric-grid--single-third');
   waterInfo.appendChild(waterMetrics);
   hudRefs.currentSpeed = createMetric(waterMetrics, '流速');
   hudRefs.currentDir = createMetric(waterMetrics, '流向');
   hudRefs.leeway = createMetric(waterMetrics, '侧滑');
-  waterInfo.appendChild(createElement('p', 'card-note', '流向表示水往哪边走。它可能受潮汐、岸线和海底地形影响，不一定顺风。'));
+  waterInfo.appendChild(createElement('p', 'card-note', '流向表示水往哪边走。它常受潮汐、岸线和地形影响，不一定顺风。'));
   const waterAdjust = createSection(waterCard.body, '调整');
   const waterSliders = createElement('div', 'slider-stack');
   waterAdjust.appendChild(waterSliders);
@@ -330,61 +477,42 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
   const boatCard = createCard(rightDock.panel, '船系统', options.boatName, '#78ffac');
   hudRefs.boatName = boatCard.subtitle;
   const boatInfo = createSection(boatCard.body, '信息');
-  const boatInfoGrid = createElement('div', 'metric-grid');
-  boatInfo.appendChild(boatInfoGrid);
-  hudRefs.heading = createMetric(boatInfoGrid, '航向');
-  hudRefs.boatSpeed = createMetric(boatInfoGrid, '船速');
-  hudRefs.heel = createMetric(boatInfoGrid, '横倾');
+  const boatMetrics = createElement('div', 'metric-grid metric-grid--single-third');
+  boatInfo.appendChild(boatMetrics);
+  hudRefs.heading = createMetric(boatMetrics, '航向');
+  hudRefs.boatSpeed = createMetric(boatMetrics, '船速');
+  hudRefs.heel = createMetric(boatMetrics, '横倾');
 
-  const boatAdjust = createSection(boatCard.body, '调整');
-  const boatAdjustGrid = createElement('div', 'metric-grid');
-  boatAdjust.appendChild(boatAdjustGrid);
-  hudRefs.sailTrim = createMetric(boatAdjustGrid, '帆角 ↑↓');
-  hudRefs.rudder = createMetric(boatAdjustGrid, '舵角 A/D');
-  hudRefs.crew = createMetric(boatAdjustGrid, '压舷 ←→');
-  hudRefs.centerboard = createMetric(boatAdjustGrid, '稳向板 W/S');
-  boatAdjust.appendChild(createElement('p', 'card-note', 'A/D 转舵，↑↓ 调帆，←→ 压舷，W/S 调整稳向板。'));
+  const boatAdjust = createSection(boatCard.body, '操控状态');
+  const boatStatusWrap = createElement('div', 'status-list');
+  boatAdjust.appendChild(boatStatusWrap);
+  const boatStatusRefs: BoatStatusRefs = {
+    sailTrim: createProgressStatus(boatStatusWrap, '帆角'),
+    rudder: createCenteredStatus(boatStatusWrap, '舵角'),
+    crew: createCenteredStatus(boatStatusWrap, '压舷'),
+    centerboard: createProgressStatus(boatStatusWrap, '稳向板'),
+  };
+  boatAdjust.appendChild(createElement('p', 'card-note', '连续量用 bar 表示，受力显示保留勾选开关，便于训练和观察。'));
 
-  const vectorSection = createSection(boatCard.body, '受力叠加');
+  const vectorSection = createSection(boatCard.body, '受力图层');
   const vectorRefs = createVectorList(vectorSection);
 
   const mapCard = createCard(rightDock.panel, '地图系统', '航向参考与位置态势', '#ffd166');
-  const mapInfo = createSection(mapCard.body, '视图');
-  const mapStage = createElement('div', 'map-stage');
-  const compassSlot = createElement('div', 'map-slot map-slot--compass');
-  const minimapSlot = createElement('div', 'map-slot map-slot--minimap');
-  mapStage.append(compassSlot, minimapSlot);
-  mapInfo.appendChild(mapStage);
-  mapInfo.appendChild(createElement('p', 'card-note', '右侧地图会随侧栏展开显示；收起侧栏时主画面将获得更大的操作视野。'));
-
-  const { zoomBar, slider: zoomSlider } = (() => {
-    const bar = createElement('div');
-    bar.id = 'zoom-bar';
-
-    const plus = createElement('label', undefined, '+');
-    const slider = createElement('input') as HTMLInputElement;
-    slider.id = 'zoom-slider';
-    slider.type = 'range';
-    slider.min = '0.3';
-    slider.max = '3';
-    slider.step = '0.05';
-    slider.value = '1';
-
-    const minus = createElement('label', undefined, '-');
-    bar.append(plus, slider, minus);
-    return { zoomBar: bar, slider };
-  })();
-  document.body.appendChild(zoomBar);
+  const mapSection = createSection(mapCard.body, '视图');
+  const mapRefs: MapRefs = createMapView(mapSection);
 
   syncEnvironmentRefs(envRefs, options.environment);
+  mapRefs.zoom.value.textContent = '1.00x';
 
   const handleZoomInput = () => {
-    cameraZoom = Number.parseFloat(zoomSlider.value);
+    cameraZoom = Number.parseFloat(mapRefs.zoom.slider.value);
+    mapRefs.zoom.value.textContent = `${cameraZoom.toFixed(2)}x`;
   };
 
   const handleWheel = (event: WheelEvent) => {
     cameraZoom = Math.max(0.3, Math.min(3, cameraZoom - event.deltaY * 0.001));
-    zoomSlider.value = cameraZoom.toString();
+    mapRefs.zoom.slider.value = cameraZoom.toString();
+    mapRefs.zoom.value.textContent = `${cameraZoom.toFixed(2)}x`;
   };
 
   const bindEnvironmentSlider = (
@@ -401,19 +529,14 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     });
   };
 
-  const updateDockBodyClass = () => {
-    document.body.classList.toggle('left-dock-collapsed', leftDock.isCollapsed());
-    document.body.classList.toggle('right-dock-collapsed', rightDock.isCollapsed());
-  };
-
   const handleLeftToggle = () => {
     leftDock.setCollapsed(!leftDock.isCollapsed());
-    updateDockBodyClass();
+    syncBodyDockState(leftDock, rightDock);
   };
 
   const handleRightToggle = () => {
     rightDock.setCollapsed(!rightDock.isCollapsed());
-    updateDockBodyClass();
+    syncBodyDockState(leftDock, rightDock);
   };
 
   bindEnvironmentSlider(envRefs.tws, () => ({ ...options.environment }), (environment, value) => {
@@ -429,7 +552,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     environment.currentDir = value;
   });
 
-  zoomSlider.addEventListener('input', handleZoomInput);
+  mapRefs.zoom.slider.addEventListener('input', handleZoomInput);
   window.addEventListener('wheel', handleWheel, { passive: true });
   leftDock.toggle.addEventListener('click', handleLeftToggle);
   rightDock.toggle.addEventListener('click', handleRightToggle);
@@ -447,7 +570,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     syncEnvironmentRefs(envRefs, nextEnvironment);
   });
 
-  updateDockBodyClass();
+  syncBodyDockState(leftDock, rightDock);
 
   return {
     getZoom() {
@@ -457,23 +580,26 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
       return { ...vectorVisibility };
     },
     getLayout() {
-      const leftSourceRect = readRect(leftDock.isCollapsed() ? leftDock.toggle : leftDock.panel);
-      const rightSourceRect = readRect(rightDock.isCollapsed() ? rightDock.toggle : rightDock.panel);
+      const leftRect = leftDock.isCollapsed()
+        ? leftDock.toggle.getBoundingClientRect()
+        : leftDock.panel.getBoundingClientRect();
+      const rightRect = rightDock.isCollapsed()
+        ? rightDock.toggle.getBoundingClientRect()
+        : rightDock.panel.getBoundingClientRect();
 
-      const viewportLeft = leftSourceRect ? Math.max(0, leftSourceRect.x + leftSourceRect.width + DOCK_GAP) : DOCK_GAP;
-      const viewportRight = rightSourceRect
-        ? Math.min(window.innerWidth, rightSourceRect.x - DOCK_GAP)
-        : window.innerWidth - DOCK_GAP;
-
-      const safeLeft = Math.min(viewportLeft, viewportRight);
-      const safeRight = Math.max(viewportLeft, viewportRight);
+      const viewportLeft = leftDock.isCollapsed()
+        ? leftRect.right + 8
+        : leftRect.right + DOCK_GAP;
+      const viewportRight = rightDock.isCollapsed()
+        ? rightRect.left - 8
+        : rightRect.left - DOCK_GAP;
 
       return {
-        viewportLeft: safeLeft,
-        viewportRight: safeRight,
-        viewportCenterX: safeLeft + Math.max(0, safeRight - safeLeft) / 2,
-        minimapRect: rightDock.isCollapsed() ? null : readRect(minimapSlot),
-        compassRect: rightDock.isCollapsed() ? null : readRect(compassSlot),
+        viewportLeft,
+        viewportRight,
+        viewportCenterX: viewportLeft + Math.max(0, viewportRight - viewportLeft) / 2,
+        minimapRect: null,
+        compassRect: null,
       };
     },
     updateHud(snapshot) {
@@ -489,24 +615,52 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
       hudRefs.heading.textContent = `${snapshot.boatHeading.toFixed(0)}°`;
       hudRefs.boatSpeed.textContent = `${snapshot.boatSpeed.toFixed(1)} kts`;
       hudRefs.heel.textContent = formatHeel(snapshot);
-      hudRefs.sailTrim.textContent = `${snapshot.sailTrim.toFixed(0)}%`;
-      hudRefs.rudder.textContent = `${snapshot.rudderAngle.toFixed(1)}°`;
-      hudRefs.crew.textContent = `${snapshot.crewWeightOffset.toFixed(0)}%`;
-      hudRefs.centerboard.textContent = `${snapshot.centerboardDown.toFixed(0)}%`;
+
+      if (boatStatusRefs.sailTrim.fill) {
+        boatStatusRefs.sailTrim.fill.style.width = `${clamp(snapshot.sailTrim, 0, 100)}%`;
+      }
+      boatStatusRefs.sailTrim.value.textContent = `${snapshot.sailTrim.toFixed(0)}%`;
+
+      if (boatStatusRefs.centerboard.fill) {
+        boatStatusRefs.centerboard.fill.style.width = `${clamp(snapshot.centerboardDown, 0, 100)}%`;
+      }
+      boatStatusRefs.centerboard.value.textContent = `${snapshot.centerboardDown.toFixed(0)}%`;
+
+      if (boatStatusRefs.rudder.thumb) {
+        const rudderPosition = ((clamp(snapshot.rudderAngle, -DEFAULT_RUDDER_RANGE, DEFAULT_RUDDER_RANGE) + DEFAULT_RUDDER_RANGE) / (DEFAULT_RUDDER_RANGE * 2)) * 100;
+        boatStatusRefs.rudder.thumb.style.left = `${rudderPosition}%`;
+      }
+      boatStatusRefs.rudder.value.textContent = `${snapshot.rudderAngle.toFixed(1)}°`;
+
+      if (boatStatusRefs.crew.thumb) {
+        const crewPosition = ((clamp(snapshot.crewWeightOffset, -100, 100) + 100) / 200) * 100;
+        boatStatusRefs.crew.thumb.style.left = `${crewPosition}%`;
+      }
+      boatStatusRefs.crew.value.textContent = formatSignedPercent(snapshot.crewWeightOffset);
+
+      const windFlowDegrees = normalizeDegrees(snapshot.twd + 180);
+      mapRefs.compassArrow.style.transform = `translate(-50%, -92%) rotate(${windFlowDegrees}deg)`;
+      mapRefs.compassLabel.textContent = `Wind Flow ${windFlowDegrees.toFixed(0)}°`;
+
+      const mapX = snapshot.boatPosition.x / WORLD_WIDTH * 200;
+      const mapY = snapshot.boatPosition.y / WORLD_HEIGHT * 200;
+      mapRefs.boatMarker.setAttribute(
+        'transform',
+        `translate(${mapX.toFixed(2)} ${mapY.toFixed(2)}) rotate(${snapshot.boatHeading.toFixed(2)})`,
+      );
     },
     syncEnvironment(environment) {
       options.environment = { ...environment };
       syncEnvironmentRefs(envRefs, environment);
     },
     destroy() {
-      zoomSlider.removeEventListener('input', handleZoomInput);
+      mapRefs.zoom.slider.removeEventListener('input', handleZoomInput);
       window.removeEventListener('wheel', handleWheel);
       leftDock.toggle.removeEventListener('click', handleLeftToggle);
       rightDock.toggle.removeEventListener('click', handleRightToggle);
       document.body.classList.remove('left-dock-collapsed', 'right-dock-collapsed');
       leftDock.dock.remove();
       rightDock.dock.remove();
-      zoomBar.remove();
     },
   };
 }

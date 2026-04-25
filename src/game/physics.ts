@@ -143,6 +143,7 @@ function buildHudSnapshot(
     boatName: boat.name,
     twd: environment.twd,
     tws: environment.tws,
+    boatPosition: { ...state.boatPosition },
     awaRelativeToBoat: derived.awaRelativeToBoat,
     aws: derived.aws,
     currentSpeed: environment.currentSpeed,
