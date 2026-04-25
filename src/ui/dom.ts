@@ -597,8 +597,8 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
   let cameraZoom = 1;
   const vectorVisibility = { ...DEFAULT_VECTOR_VISIBILITY };
 
-  const leftDock = createDock('left', '控制中心');
-  const rightDock = createDock('right', '船舶数据');
+  const leftDock = createDock('left', '环境系统');
+  const rightDock = createDock('right', '船舶仪表');
   document.body.append(leftDock.dock, rightDock.dock);
 
   const bottomCenter = createElement('div', 'floating-bottom');

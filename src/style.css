@@ -49,6 +49,7 @@ canvas {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  padding-top: 48px;
   padding-bottom: 24px;
   padding-right: 4px;
   pointer-events: auto;
@@ -114,11 +115,11 @@ canvas {
 }
 
 .hud-dock--left:not(.is-collapsed) .dock-toggle {
-  transform: translateX(calc(100% + 12px));
+  transform: translateX(332px) !important;
 }
 
 .hud-dock--right:not(.is-collapsed) .dock-toggle {
-  transform: translateX(calc(-100% - 12px));
+  transform: translateX(-332px) !important;
 }
 
 .dock-toggle-icon {
