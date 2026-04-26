@@ -49,7 +49,6 @@ canvas {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  padding-top: 48px;
   padding-bottom: 24px;
   padding-right: 4px;
   pointer-events: auto;
@@ -71,64 +70,9 @@ canvas {
   border-radius: 10px;
 }
 
-.hud-dock--left.is-collapsed .dock-panel {
-  transform: translateX(calc(-100% - 24px));
-  opacity: 0;
-}
-
 .hud-dock--right.is-collapsed .dock-panel {
   transform: translateX(calc(100% + 24px));
   opacity: 0;
-}
-
-.dock-toggle {
-  position: absolute;
-  top: 8px;
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 999px;
-  background: rgba(4, 20, 39, 0.88);
-  color: #ffffff;
-  font: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.hud-dock--left .dock-toggle {
-  left: 0;
-}
-
-.hud-dock--right .dock-toggle {
-  right: 0;
-}
-
-.hud-dock:not(.is-collapsed) .dock-toggle {
-  opacity: 0.92;
-}
-
-.hud-dock--left:not(.is-collapsed) .dock-toggle {
-  transform: translateX(332px) !important;
-}
-
-.hud-dock--right:not(.is-collapsed) .dock-toggle {
-  transform: translateX(-332px) !important;
-}
-
-.dock-toggle-icon {
-  font-size: 14px;
-  line-height: 1;
-}
-
-.dock-toggle-label {
-  letter-spacing: 0.04em;
 }
 
 .control-card {

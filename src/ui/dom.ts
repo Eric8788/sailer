@@ -143,25 +143,15 @@ function createDock(side: 'left' | 'right', label: string): DockRefs {
   let collapsed = false;
 
   const dock = createElement('aside', `hud-dock hud-dock--${side}`);
-  const toggle = createElement('button', 'dock-toggle') as HTMLButtonElement;
-  toggle.type = 'button';
-  toggle.setAttribute('aria-label', label);
-
-  const icon = createElement('span', 'dock-toggle-icon');
-  const text = createElement('span', 'dock-toggle-label', label);
-  toggle.append(icon, text);
-
   const panel = createElement('div', 'dock-panel');
-  dock.append(toggle, panel);
+  dock.append(panel);
 
-  const sync = () => {
-    dock.classList.toggle('is-collapsed', collapsed);
-    icon.textContent = collapsed
-      ? side === 'left' ? '›' : '‹'
-      : side === 'left' ? '‹' : '›';
+  return {
+    dock,
+    panel,
+    isCollapsed: () => false,
+    setCollapsed() {},
   };
-
-  sync();
 
   return {
     dock,
