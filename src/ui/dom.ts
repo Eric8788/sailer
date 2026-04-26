@@ -311,7 +311,7 @@ function createCompass(parent: HTMLElement, options: { onWindChange?: (angle: nu
       const label = labelMap[i] || '';
       if (label) {
         const labelEl = createElement('div', 'compass-tick-label', label);
-        labelEl.style.transform = `rotate(${-i}deg) translateY(-14px)`;
+        labelEl.style.transform = `rotate(${-i}deg) translateY(var(--compass-label-offset, -14px))`;
         tick.appendChild(labelEl);
       }
     }

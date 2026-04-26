@@ -560,6 +560,7 @@ canvas {
   justify-items: center;
   gap: 12px;
   --compass-tick-offset: -88px;
+  --compass-label-offset: -14px;
   --wind-handle-offset: -88px;
   --current-handle-offset: -77px;
 }
@@ -927,9 +928,10 @@ canvas {
   }
   
   .compass-widget {
-    padding: 8px 4px;
-    gap: 8px;
+    padding: 6px 4px;
+    gap: 4px;
     --compass-tick-offset: -49px;
+    --compass-label-offset: -10px;
     --wind-handle-offset: -49px;
     --current-handle-offset: -43px;
   }
@@ -949,9 +951,22 @@ canvas {
     height: 86px;
   }
   
-  .compass-arrow,
+  .compass-arrow {
+    height: 45px;
+  }
+  
   .compass-current-arrow {
     height: 40px;
+  }
+
+  .compass-inner-dial {
+    width: 70px;
+    height: 70px;
+  }
+
+  .compass-label {
+    margin-top: -4px;
+    font-size: 11px;
   }
 
   .compass-handle {
