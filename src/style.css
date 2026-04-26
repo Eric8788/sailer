@@ -861,14 +861,46 @@ canvas {
     margin-top: 8px;
   }
   
+  .compass-widget {
+    padding: 8px 4px;
+    gap: 8px;
+  }
+
   .compass-dial {
-    width: 90px;
-    height: 90px;
+    width: 100px;
+    height: 100px;
+  }
+  
+  .compass-track--wind {
+    width: 98px;
+    height: 98px;
+  }
+  
+  .compass-track--current {
+    width: 86px;
+    height: 86px;
   }
   
   .compass-arrow,
   .compass-current-arrow {
-    height: 36px;
+    height: 40px;
+  }
+
+  .compass-handle {
+    width: 12px;
+    height: 12px;
+  }
+
+  .compass-center-info {
+    gap: 0;
+  }
+
+  .compass-tws-value {
+    font-size: 14px;
+  }
+
+  .compass-cur-value {
+    font-size: 10px;
   }
 }
 
