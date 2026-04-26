@@ -16,7 +16,7 @@ const DEFAULT_VECTOR_VISIBILITY: VectorVisibility = {
   crew: true,
 };
 
-const DOCK_GAP = 20;
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const DEFAULT_RUDDER_RANGE = 35;
 
@@ -779,7 +779,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     }
   });
 
-  syncBodyDockState(leftDock, rightDock);
+
 
   return {
     getZoom() {
@@ -789,26 +789,12 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
       return { ...vectorVisibility };
     },
     getLayout() {
-      const leftRect = leftDock.isCollapsed()
-        ? leftDock.toggle.getBoundingClientRect()
-        : leftDock.panel.getBoundingClientRect();
-      const rightRect = rightDock.isCollapsed()
-        ? rightDock.toggle.getBoundingClientRect()
-        : rightDock.panel.getBoundingClientRect();
-
-      // If rects are not yet valid (e.g. initial render before layout), use window width
-      const viewportLeft = (leftRect.width === 0) 
-        ? (leftDock.isCollapsed() ? 40 : 340)
-        : (leftDock.isCollapsed() ? leftRect.right + 8 : leftRect.right + DOCK_GAP);
-        
-      const viewportRight = (rightRect.width === 0)
-        ? (rightDock.isCollapsed() ? window.innerWidth - 40 : window.innerWidth - 340)
-        : (rightDock.isCollapsed() ? rightRect.left - 8 : rightRect.left - DOCK_GAP);
-
+      const viewportLeft = 332;
+      const viewportRight = window.innerWidth - 332;
       return {
         viewportLeft,
         viewportRight,
-        viewportCenterX: viewportLeft + Math.max(0, viewportRight - viewportLeft) / 2,
+        viewportCenterX: (viewportLeft + viewportRight) / 2,
         minimapRect: null,
         compassRect: null,
       };
@@ -941,9 +927,6 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     destroy() {
       mapRefs.zoom.slider.removeEventListener('input', handleZoomInput);
       window.removeEventListener('wheel', handleWheel);
-      leftDock.toggle.removeEventListener('click', handleLeftToggle);
-      rightDock.toggle.removeEventListener('click', handleRightToggle);
-      document.body.classList.remove('left-dock-collapsed', 'right-dock-collapsed');
       leftDock.dock.remove();
       rightDock.dock.remove();
     },
