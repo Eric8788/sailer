@@ -13,6 +13,43 @@ body {
   -webkit-user-select: none;
 }
 
+/* App Header */
+.app-header {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  text-align: center;
+}
+
+.app-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+  background: linear-gradient(180deg, #ffffff, rgba(255, 255, 255, 0.6));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-version {
+  margin-top: 2px;
+  color: rgba(0, 229, 255, 0.6);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
 body {
   position: relative;
 }
@@ -522,6 +559,7 @@ canvas {
   display: grid;
   justify-items: center;
   gap: 12px;
+  --compass-tick-offset: -88px;
 }
 
 .compass-dial {
@@ -551,6 +589,31 @@ canvas {
 .compass-track--current {
   width: 154px;
   height: 154px;
+}
+
+.compass-tick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.compass-tick--major {
+  width: 2px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.compass-tick-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .compass-handle {
@@ -864,6 +927,7 @@ canvas {
   .compass-widget {
     padding: 8px 4px;
     gap: 8px;
+    --compass-tick-offset: -49px;
   }
 
   .compass-dial {
@@ -889,6 +953,22 @@ canvas {
   .compass-handle {
     width: 12px;
     height: 12px;
+  }
+
+  .compass-tick-label {
+    font-size: 8px;
+  }
+
+  .compass-center-info {
+    gap: 0;
+  }
+
+  .compass-tws-value {
+    font-size: 14px;
+  }
+
+  .compass-cur-value {
+    font-size: 10px;
   }
 
   .compass-center-info {

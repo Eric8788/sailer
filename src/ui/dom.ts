@@ -304,13 +304,14 @@ function createCompass(parent: HTMLElement, options: { onWindChange?: (angle: nu
     const isMajor = i % 90 === 0;
     const tick = createElement('div', `compass-tick${isMajor ? ' compass-tick--major' : ''}`);
     // Each tick is already positioned at center, we just need to rotate and move it out
-    tick.style.transform = `translate(-50%, -50%) rotate(${i}deg) translateY(-88px)`;
+    // Use a CSS variable for the translation so it can be updated via media queries
+    tick.style.transform = `translate(-50%, -50%) rotate(${i}deg) translateY(var(--compass-tick-offset, -88px))`;
     if (isMajor) {
       const labelMap: Record<number, string> = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
       const label = labelMap[i] || '';
       if (label) {
         const labelEl = createElement('div', 'compass-tick-label', label);
-        labelEl.style.transform = `rotate(${-i}deg) translateY(-15px)`;
+        labelEl.style.transform = `rotate(${-i}deg) translateY(-14px)`;
         tick.appendChild(labelEl);
       }
     }
@@ -565,6 +566,12 @@ function syncEnvironmentRefs(refs: EnvironmentRefs, environment: EnvironmentStat
 export function createGameUi(options: CreateGameUiOptions): GameUi {
   let cameraZoom = 1;
   const vectorVisibility = { ...DEFAULT_VECTOR_VISIBILITY };
+
+  const header = createElement('header', 'app-header');
+  const title = createElement('h1', 'app-title', 'Tactical Sailor');
+  const version = createElement('div', 'app-version', 'v1.2.2');
+  header.append(title, version);
+  document.body.append(header);
 
   const leftDock = createDock('left');
   const rightDock = createDock('right');
