@@ -834,11 +834,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
           }
         }
         if (mapRefs.windHandle) {
-          const radius = 88; // 176/2
-          const rad = (windFlowDegrees - 90) * (Math.PI / 180);
-          const x = Math.cos(rad) * radius;
-          const y = Math.sin(rad) * radius;
-          mapRefs.windHandle.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+          mapRefs.windHandle.style.transform = `translate(-50%, -50%) rotate(${windFlowDegrees}deg) translateY(var(--wind-handle-offset, -88px))`;
         }
 
         if (mapRefs.currentArrow) {
@@ -849,11 +845,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
           }
         }
         if (mapRefs.currentHandle) {
-          const radius = 77; // 154/2
-          const rad = (currentFlowDegrees - 90) * (Math.PI / 180);
-          const x = Math.cos(rad) * radius;
-          const y = Math.sin(rad) * radius;
-          mapRefs.currentHandle.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+          mapRefs.currentHandle.style.transform = `translate(-50%, -50%) rotate(${currentFlowDegrees}deg) translateY(var(--current-handle-offset, -77px))`;
         }
 
         // Update Boat Metrics

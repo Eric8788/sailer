@@ -560,6 +560,8 @@ canvas {
   justify-items: center;
   gap: 12px;
   --compass-tick-offset: -88px;
+  --wind-handle-offset: -88px;
+  --current-handle-offset: -77px;
 }
 
 .compass-dial {
@@ -928,6 +930,8 @@ canvas {
     padding: 8px 4px;
     gap: 8px;
     --compass-tick-offset: -49px;
+    --wind-handle-offset: -49px;
+    --current-handle-offset: -43px;
   }
 
   .compass-dial {
