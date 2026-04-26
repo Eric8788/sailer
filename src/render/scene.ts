@@ -82,6 +82,7 @@ function updateParticleLayers(
   color: number,
   width: number,
   alphaBuckets: number[],
+  isWind: boolean = false,
 ) {
   for (const layer of layers) {
     layer.clear();
@@ -91,11 +92,26 @@ function updateParticleLayers(
     particle.x = wrapCoordinate(particle.x + flowX * particle.speed * dt, WORLD_WIDTH);
     particle.y = wrapCoordinate(particle.y + flowY * particle.speed * dt, WORLD_HEIGHT);
 
-    const endX = particle.x + Math.sin(angle) * particle.len;
-    const endY = particle.y - Math.cos(angle) * particle.len;
     const layer = layers[particle.bucket];
-    layer.moveTo(particle.x, particle.y);
-    layer.lineTo(endX, endY);
+    
+    if (isWind) {
+      // Wind style: Short, soft "puffs" or wisps
+      // We use a small randomized offset to make it look less uniform (less like rain)
+      const jitter = (Math.random() - 0.5) * 0.2;
+      const puffAngle = angle + jitter;
+      const puffLen = particle.len * 0.3; // Much shorter
+      
+      const endX = particle.x + Math.sin(puffAngle) * puffLen;
+      const endY = particle.y - Math.cos(puffAngle) * puffLen;
+      
+      layer.moveTo(particle.x, particle.y);
+      layer.lineTo(endX, endY);
+    } else {
+      const endX = particle.x + Math.sin(angle) * particle.len;
+      const endY = particle.y - Math.cos(angle) * particle.len;
+      layer.moveTo(particle.x, particle.y);
+      layer.lineTo(endX, endY);
+    }
   }
 
   for (let index = 0; index < layers.length; index += 1) {
@@ -451,8 +467,8 @@ export function createScene(app: Application, boat: BoatConfig): SceneRefs {
     vectorGraphics,
     vectorLabels,
     capsizeText,
-    windParticles: createParticles(WIND_PARTICLE_COUNT, WIND_ALPHA_BUCKETS.length, 8, 15, 0.8, 0.5),
-    currentParticles: createParticles(CURRENT_PARTICLE_COUNT, CURRENT_ALPHA_BUCKETS.length, 10, 20, 0.5, 0.3),
+    windParticles: createParticles(WIND_PARTICLE_COUNT * 1.5, WIND_ALPHA_BUCKETS.length, 15, 10, 1.6, 0.4),
+    currentParticles: createParticles(CURRENT_PARTICLE_COUNT, CURRENT_ALPHA_BUCKETS.length, 12, 12, 0.8, 0.4),
     windStreakLayers,
     currentStreakLayers,
     trailPool: createTrailPool(trailContainer),
@@ -463,8 +479,8 @@ export function createScene(app: Application, boat: BoatConfig): SceneRefs {
 export function renderScene(scene: SceneRefs, snapshot: RenderSnapshot, options: RenderSceneOptions) {
   const { app, boat } = scene;
 
-  const windFlowX = Math.sin(snapshot.windFlowRad) * snapshot.tws * 0.15;
-  const windFlowY = -Math.cos(snapshot.windFlowRad) * snapshot.tws * 0.15;
+  const windFlowX = Math.sin(snapshot.windFlowRad) * snapshot.tws * 0.6;
+  const windFlowY = -Math.cos(snapshot.windFlowRad) * snapshot.tws * 0.6;
   updateParticleLayers(
     scene.windStreakLayers,
     scene.windParticles,
@@ -473,12 +489,13 @@ export function renderScene(scene: SceneRefs, snapshot: RenderSnapshot, options:
     windFlowY,
     options.dt,
     0xffffff,
-    1.5,
+    2.5, // Thicker but shorter
     WIND_ALPHA_BUCKETS,
+    true,
   );
 
-  const currentFlowX = Math.sin(snapshot.currentFlowRad) * snapshot.currentSpeed * 0.8;
-  const currentFlowY = -Math.cos(snapshot.currentFlowRad) * snapshot.currentSpeed * 0.8;
+  const currentFlowX = Math.sin(snapshot.currentFlowRad) * snapshot.currentSpeed * 2.2;
+  const currentFlowY = -Math.cos(snapshot.currentFlowRad) * snapshot.currentSpeed * 2.2;
   updateParticleLayers(
     scene.currentStreakLayers,
     scene.currentParticles,
@@ -486,8 +503,8 @@ export function renderScene(scene: SceneRefs, snapshot: RenderSnapshot, options:
     currentFlowX,
     currentFlowY,
     options.dt,
-    0x4fc3f7,
-    2.5,
+    0x00e5ff, // More vibrant cyan
+    3.5, // Thicker for current
     CURRENT_ALPHA_BUCKETS,
   );
 

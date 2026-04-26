@@ -626,11 +626,10 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
   autoPanel.append(diffGroup, envRefs.autoToggleBtn);
   envAdjust.appendChild(autoPanel);
 
-  const mapCard = createCard(leftDock.panel, '战术地图', 'Tactical Map', '#ffd166');
-  const { boatMarker, boatSpeedVector } = createMinimap(mapCard.body);
+  const { boatMarker, boatSpeedVector } = createMinimap(leftDock.panel);
 
   // --- Right Dock: Boat System ---
-  const boatCard = createCard(rightDock.panel, '船系统', options.boatName, '#78ffac');
+  const boatCard = createCard(rightDock.panel, '船系统', `船型号: ${options.boatName}`, '#78ffac');
   
   const boatInfo = createSection(boatCard.body, '船舶系统');
   const boatMetrics = createElement('div', 'metric-grid metric-grid--3col');

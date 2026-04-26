@@ -1,14 +1,30 @@
+:root {
+  --bg-deep: #020617;
+  --bg-glass: rgba(13, 17, 28, 0.4);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --accent-blue: #38bdf8;
+  --accent-cyan: #22d3ee;
+  --accent-amber: #fbbf24;
+  --accent-emerald: #34d399;
+  --accent-rose: #fb7185;
+  
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-data: 'JetBrains Mono', 'Roboto Mono', monospace;
+  
+  --hud-width: 300px;
+}
+
 html,
 body {
   margin: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top, rgba(56, 159, 255, 0.3), transparent 30%),
-    linear-gradient(180deg, #0a2c52 0%, #04182d 100%);
-  color: #ffffff;
-  font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -65,26 +81,26 @@ canvas {
 
 .hud-dock {
   position: fixed;
-  top: 12px;
-  bottom: 12px;
+  top: 60px; /* Space for header */
+  bottom: 24px;
   z-index: 120;
-  width: 320px;
+  width: var(--hud-width);
   pointer-events: none;
 }
 
 .hud-dock--left {
-  left: 12px;
+  left: 24px;
 }
 
 .hud-dock--right {
-  right: 12px;
+  right: 24px;
 }
 
 .dock-panel {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
   overflow-y: auto;
   padding-top: 12px;
   padding-bottom: 24px;
@@ -113,15 +129,14 @@ canvas {
 
 
 .control-card {
-  background:
-    linear-gradient(180deg, rgba(11, 43, 79, 0.96), rgba(5, 26, 51, 0.94)),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+  box-shadow: none;
   overflow: hidden;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  pointer-events: auto;
 }
 
 .card-header {
@@ -133,23 +148,23 @@ canvas {
 }
 
 .card-eyebrow {
-  color: var(--accent);
+  color: var(--accent-blue);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  opacity: 0.9;
 }
 
 .card-subtitle {
-  margin-top: 2px;
-  color: rgba(255, 255, 255, 1);
-  font-size: 13px;
-  font-weight: 700;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .card-body {
-  padding: 10px 14px 12px;
+  padding: 16px;
 }
 
 .card-section + .card-section {
@@ -176,27 +191,35 @@ canvas {
 }
 
 .metric {
-  padding: 6px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 10px;
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
   min-width: 0;
+  transition: background 0.2s ease;
+}
+
+.metric:hover {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .metric-label {
   display: block;
-  margin-bottom: 2px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 10px;
+  margin-bottom: 4px;
+  color: var(--text-secondary);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .metric-value {
   display: block;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 800;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.2;
-  font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  font-family: var(--font-data);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -898,10 +921,17 @@ canvas {
 }
 
 .minimap-container--integrated {
-  margin-top: 8px;
-  max-width: 280px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-top: auto; /* Push to bottom of left dock */
+  width: 100%; /* Match HUD width */
+  aspect-ratio: 1.2 / 1;
+  border-radius: 24px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-glass);
+  overflow: hidden;
+  box-shadow: none;
+  pointer-events: auto;
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
 }
 
 .minimap-svg {
@@ -928,50 +958,50 @@ canvas {
   }
   
   .compass-widget {
-    padding: 6px 4px;
-    gap: 4px;
-    --compass-tick-offset: -49px;
-    --compass-label-offset: -10px;
-    --wind-handle-offset: -49px;
-    --current-handle-offset: -43px;
+    padding: 10px 4px;
+    gap: 8px;
+    --compass-tick-offset: -74px; /* 增加到 150px 比例 */
+    --compass-label-offset: -12px;
+    --wind-handle-offset: -74px;
+    --current-handle-offset: -65px;
   }
 
   .compass-dial {
-    width: 100px;
-    height: 100px;
+    width: 150px;
+    height: 150px;
   }
   
   .compass-track--wind {
-    width: 98px;
-    height: 98px;
+    width: 148px;
+    height: 148px;
   }
   
   .compass-track--current {
-    width: 86px;
-    height: 86px;
+    width: 130px;
+    height: 130px;
   }
   
   .compass-arrow {
-    height: 45px;
+    height: 68px;
   }
   
   .compass-current-arrow {
-    height: 40px;
+    height: 60px;
   }
 
   .compass-inner-dial {
-    width: 70px;
-    height: 70px;
+    width: 110px;
+    height: 110px;
   }
 
   .compass-label {
-    margin-top: -4px;
+    margin-top: -6px;
     font-size: 11px;
   }
 
   .compass-handle {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
   }
 
   .compass-tick-label {
