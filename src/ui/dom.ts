@@ -85,9 +85,6 @@ interface MapRefs {
 interface DockRefs {
   dock: HTMLElement;
   panel: HTMLElement;
-  toggle: HTMLButtonElement;
-  isCollapsed(): boolean;
-  setCollapsed(nextCollapsed: boolean): void;
 }
 
 export interface GameUi {
@@ -139,29 +136,14 @@ function createSvgElement<K extends keyof SVGElementTagNameMap>(
   return element;
 }
 
-function createDock(side: 'left' | 'right', label: string): DockRefs {
-  let collapsed = false;
-
+function createDock(side: 'left' | 'right'): DockRefs {
   const dock = createElement('aside', `hud-dock hud-dock--${side}`);
   const panel = createElement('div', 'dock-panel');
-  dock.append(panel);
+  dock.appendChild(panel);
 
   return {
     dock,
     panel,
-    isCollapsed: () => false,
-    setCollapsed() {},
-  };
-
-  return {
-    dock,
-    panel,
-    toggle,
-    isCollapsed: () => collapsed,
-    setCollapsed(nextCollapsed: boolean) {
-      collapsed = nextCollapsed;
-      sync();
-    },
   };
 }
 
@@ -578,17 +560,14 @@ function syncEnvironmentRefs(refs: EnvironmentRefs, environment: EnvironmentStat
   refs.currentSpeed.value.textContent = `${environment.currentSpeed.toFixed(1)} kts`;
 }
 
-function syncBodyDockState(leftDock: DockRefs, rightDock: DockRefs) {
-  document.body.classList.toggle('left-dock-collapsed', leftDock.isCollapsed());
-  document.body.classList.toggle('right-dock-collapsed', rightDock.isCollapsed());
-}
+
 
 export function createGameUi(options: CreateGameUiOptions): GameUi {
   let cameraZoom = 1;
   const vectorVisibility = { ...DEFAULT_VECTOR_VISIBILITY };
 
-  const leftDock = createDock('left', '环境系统');
-  const rightDock = createDock('right', '船舶仪表');
+  const leftDock = createDock('left');
+  const rightDock = createDock('right');
   document.body.append(leftDock.dock, rightDock.dock);
 
   const bottomCenter = createElement('div', 'floating-bottom');
@@ -730,15 +709,7 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
     });
   };
 
-  const handleLeftToggle = () => {
-    leftDock.setCollapsed(!leftDock.isCollapsed());
-    syncBodyDockState(leftDock, rightDock);
-  };
 
-  const handleRightToggle = () => {
-    rightDock.setCollapsed(!rightDock.isCollapsed());
-    syncBodyDockState(leftDock, rightDock);
-  };
 
   bindEnvironmentSlider(envRefs.tws, () => ({ ...options.environment }), (environment, value) => {
     environment.tws = value;
@@ -749,8 +720,6 @@ export function createGameUi(options: CreateGameUiOptions): GameUi {
 
   mapRefs.zoom.slider.addEventListener('input', handleZoomInput);
   window.addEventListener('wheel', handleWheel, { passive: true });
-  leftDock.toggle.addEventListener('click', handleLeftToggle);
-  rightDock.toggle.addEventListener('click', handleRightToggle);
 
   for (const key of Object.keys(vectorVisibility) as VectorKey[]) {
     vectorRefs[key].addEventListener('change', () => {

@@ -49,6 +49,7 @@ canvas {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  padding-top: 12px;
   padding-bottom: 24px;
   padding-right: 4px;
   pointer-events: auto;
@@ -70,10 +71,9 @@ canvas {
   border-radius: 10px;
 }
 
-.hud-dock--right.is-collapsed .dock-panel {
-  transform: translateX(calc(100% + 24px));
-  opacity: 0;
-}
+
+
+
 
 .control-card {
   background:
